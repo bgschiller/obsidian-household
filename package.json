@@ -1,0 +1,26 @@
+{
+  "name": "obsidian-household",
+  "version": "0.1.0",
+  "description": "Household tools for the Schiller family: grocery sorting and the star chart.",
+  "main": "main.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "typecheck": "tsc -noEmit -skipLibCheck",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.28.0",
+    "obsidian": "^1.13.1",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

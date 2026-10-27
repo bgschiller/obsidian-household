@@ -1,0 +1,116 @@
+/* Star chart */
+
+.household-starchart {
+  padding: 0.5rem 0;
+}
+
+.household-stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.household-stat {
+  display: flex;
+  flex-direction: column;
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  min-width: 90px;
+}
+
+.household-stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.household-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.household-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.household-grid-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.household-squares-row {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.household-square {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--text-normal);
+}
+
+.household-square.is-active {
+  background: var(--interactive-accent);
+}
+
+.household-square.is-exchanged {
+  background: var(--background-modifier-border);
+}
+
+.household-square.is-empty {
+  border: 1px solid var(--background-modifier-border);
+}
+
+.household-row-star {
+  font-size: 0.9rem;
+}
+
+.household-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.household-btn {
+  font-size: 0.95rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.household-dry {
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 0.5rem;
+}
+
+.household-dry h3 {
+  margin: 0 0 0.5rem;
+}
+
+.household-dry-track {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+}
+
+.household-dry-fill {
+  height: 100%;
+  background: var(--interactive-accent);
+}
+
+.household-dry-count {
+  margin: 0 0 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}

@@ -1,0 +1,10 @@
+{
+  "id": "household",
+  "name": "Household",
+  "version": "0.1.0",
+  "minAppVersion": "1.13.0",
+  "description": "Household tools for the Schiller family: grocery sorting and the star chart.",
+  "author": "Brian Schiller",
+  "authorUrl": "https://github.com/bgschiller/obsidian-household",
+  "isDesktopOnly": false
+}

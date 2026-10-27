@@ -47,7 +47,7 @@ export default class HouseholdPlugin extends Plugin {
     this.registerMarkdownCodeBlockProcessor(
       "starchart",
       (source, el, ctx: MarkdownPostProcessorContext) => {
-        ctx.addChild(new StarchartWidget(ctx.sourcePath, this.app, el));
+        ctx.addChild(new StarchartWidget(source, ctx, this.app, el));
       },
     );
   }

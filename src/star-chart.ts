@@ -2,19 +2,15 @@
 export const SQUARES_PER_TV = 20;
 export const DRY_DAYS_PER_REWARD = 20;
 export const TIMEZONE = "America/Los_Angeles";
-export const CHART_TITLE = "Everett's Potty Chart";
-
-export type Exchange = {
-  timestamp: number;
-  squaresExchanged: number;
-  squareRange: [number, number];
-  usedDate: string; // YYYY-MM-DD in Pacific time
-};
 
 export type ChartState = {
+  name: string;
   totalSquares: number;
   dryCount: number;
-  exchanges: Exchange[];
+  /** Squares spent on TV today (always the oldest `spentSquares` squares). */
+  spentSquares: number;
+  /** Pacific date (YYYY-MM-DD) when `spentSquares` was last changed; "" when none. */
+  spentDate: string;
 };
 
 export type Mutation = { state: ChartState; error?: string };
@@ -30,33 +26,28 @@ export function todayInPacific(): string {
   return formatter.format(new Date());
 }
 
-export function exchangedSquares(state: ChartState): number {
-  return state.exchanges.reduce((sum, e) => sum + e.squaresExchanged, 0);
-}
-
 export function activeSquares(state: ChartState): number {
-  return state.totalSquares - exchangedSquares(state);
+  return state.totalSquares - state.spentSquares;
 }
 
-/** Remove exchanges whose usedDate is before today, reducing totalSquares accordingly. */
-export function ageOutExchanges(state: ChartState): {
+/** If yesterday's TV spending is still recorded, retire it (reduce totalSquares). */
+export function ageOutSpending(state: ChartState): {
   state: ChartState;
-  removed: number;
+  changed: boolean;
 } {
   const today = todayInPacific();
-  const removedSquares = state.exchanges
-    .filter((e) => e.usedDate < today)
-    .reduce((sum, e) => sum + e.squaresExchanged, 0);
-  const kept = state.exchanges.filter((e) => e.usedDate >= today);
-
-  return {
-    state: {
-      totalSquares: Math.max(0, state.totalSquares - removedSquares),
-      dryCount: state.dryCount,
-      exchanges: kept,
-    },
-    removed: state.exchanges.length - kept.length,
-  };
+  if (state.spentSquares > 0 && state.spentDate !== "" && state.spentDate < today) {
+    return {
+      state: {
+        ...state,
+        totalSquares: Math.max(0, state.totalSquares - state.spentSquares),
+        spentSquares: 0,
+        spentDate: "",
+      },
+      changed: true,
+    };
+  }
+  return { state, changed: false };
 }
 
 export function addSquares(state: ChartState, amount: number): Mutation {
@@ -67,25 +58,22 @@ export function subtractSquare(state: ChartState): Mutation {
   if (activeSquares(state) <= 0) {
     return { state, error: "No active squares to subtract" };
   }
-  const exchanged = exchangedSquares(state);
   return {
-    state: { ...state, totalSquares: Math.max(exchanged, state.totalSquares - 1) },
+    state: { ...state, totalSquares: Math.max(state.spentSquares, state.totalSquares - 1) },
   };
 }
 
 export function exchangeTv(state: ChartState): Mutation {
-  const active = activeSquares(state);
-  if (active < SQUARES_PER_TV) {
+  if (activeSquares(state) < SQUARES_PER_TV) {
     return { state, error: `Need at least ${SQUARES_PER_TV} squares to exchange` };
   }
-  const startSquare = exchangedSquares(state) + 1;
-  const exchange: Exchange = {
-    timestamp: Date.now(),
-    squaresExchanged: SQUARES_PER_TV,
-    squareRange: [startSquare, startSquare + SQUARES_PER_TV - 1],
-    usedDate: todayInPacific(),
+  return {
+    state: {
+      ...state,
+      spentSquares: state.spentSquares + SQUARES_PER_TV,
+      spentDate: todayInPacific(),
+    },
   };
-  return { state: { ...state, exchanges: [...state.exchanges, exchange] } };
 }
 
 export function addDryDay(state: ChartState): Mutation {
@@ -97,4 +85,52 @@ export function claimDryReward(state: ChartState): Mutation {
     return { state, error: `Need at least ${DRY_DAYS_PER_REWARD} dry days` };
   }
   return { state: { ...state, dryCount: state.dryCount - DRY_DAYS_PER_REWARD } };
+}
+
+/** Parse the body of a ```starchart code block into state. Unknown keys ignored. */
+export function parseState(source: string): ChartState {
+  const state: ChartState = {
+    name: "",
+    totalSquares: 0,
+    dryCount: 0,
+    spentSquares: 0,
+    spentDate: "",
+  };
+  for (const rawLine of source.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (line === "") continue;
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim();
+    const value = line.slice(idx + 1).trim();
+    switch (key) {
+      case "name":
+        state.name = value;
+        break;
+      case "totalSquares":
+        state.totalSquares = parseInt(value, 10) || 0;
+        break;
+      case "dryCount":
+        state.dryCount = parseInt(value, 10) || 0;
+        break;
+      case "spentSquares":
+        state.spentSquares = parseInt(value, 10) || 0;
+        break;
+      case "spentDate":
+        state.spentDate = value;
+        break;
+    }
+  }
+  return state;
+}
+
+/** Serialize state back to the `key: value` lines stored inside the block. */
+export function serializeState(state: ChartState): string {
+  return [
+    `name: ${state.name}`,
+    `totalSquares: ${state.totalSquares}`,
+    `dryCount: ${state.dryCount}`,
+    `spentSquares: ${state.spentSquares}`,
+    `spentDate: ${state.spentDate}`,
+  ].join("\n");
 }

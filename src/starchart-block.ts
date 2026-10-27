@@ -1,14 +1,20 @@
-import { MarkdownRenderChild, Notice, TFile, type App } from "obsidian";
 import {
+  MarkdownRenderChild,
+  Notice,
+  TFile,
+  type App,
+  type MarkdownPostProcessorContext,
+} from "obsidian";
+import {
+  activeSquares,
   addDryDay,
   addSquares,
-  ageOutExchanges,
-  activeSquares,
-  CHART_TITLE,
+  ageOutSpending,
   claimDryReward,
   DRY_DAYS_PER_REWARD,
   exchangeTv,
-  exchangedSquares,
+  parseState,
+  serializeState,
   SQUARES_PER_TV,
   subtractSquare,
   type ChartState,
@@ -20,65 +26,63 @@ export class StarchartWidget extends MarkdownRenderChild {
   private state: ChartState;
 
   constructor(
-    private sourcePath: string,
+    source: string,
+    private ctx: MarkdownPostProcessorContext,
     private app: App,
     containerEl: HTMLElement,
   ) {
     super(containerEl);
-    this.state = this.readState();
-  }
-
-  private readState(): ChartState {
-    const file = this.app.vault.getAbstractFileByPath(this.sourcePath);
-    if (!(file instanceof TFile)) {
-      return { totalSquares: 0, dryCount: 0, exchanges: [] };
-    }
-    const fm = this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
-    return {
-      totalSquares: Number(fm.totalSquares) || 0,
-      dryCount: Number(fm.dryCount) || 0,
-      exchanges: Array.isArray(fm.exchanges) ? fm.exchanges : [],
-    };
+    this.state = parseState(source);
   }
 
   async onload() {
-    const aged = ageOutExchanges(this.state);
-    if (aged.removed > 0) {
+    const aged = ageOutSpending(this.state);
+    if (aged.changed) {
       this.state = aged.state;
-      await this.writeState();
+      await this.writeBlock();
     }
     this.render();
   }
 
-  private async writeState(): Promise<void> {
-    const file = this.app.vault.getAbstractFileByPath(this.sourcePath);
+  /** Rewrite the ```starchart block in the note with the current state. */
+  private async writeBlock(): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(this.ctx.sourcePath);
     if (!(file instanceof TFile)) return;
-    await this.app.fileManager.processFrontMatter(file, (fm) => {
-      fm.totalSquares = this.state.totalSquares;
-      fm.dryCount = this.state.dryCount;
-      fm.exchanges = this.state.exchanges;
+
+    const section = this.ctx.getSectionInfo(this.containerEl);
+    const serialized = serializeState(this.state);
+
+    await this.app.vault.process(file, (data) => {
+      const lines = data.split("\n");
+      const range = findFenceRange(lines, section?.lineStart ?? null);
+      if (!range) return data;
+      const block = ["```starchart", serialized, "```"];
+      return [
+        ...lines.slice(0, range.start),
+        ...block,
+        ...lines.slice(range.end + 1),
+      ].join("\n");
     });
   }
 
   private async mutate(fn: (s: ChartState) => Mutation): Promise<void> {
-    const aged = ageOutExchanges(this.state);
+    const aged = ageOutSpending(this.state);
     this.state = aged.state;
-    if (aged.removed > 0) await this.writeState();
 
     const result = fn(this.state);
     if (result.error) {
+      if (aged.changed) await this.writeBlock();
       new Notice(result.error);
+      this.render();
       return;
     }
     this.state = result.state;
-    await this.writeState();
+    await this.writeBlock();
     this.render();
   }
 
   private isSquareExchanged(squareNum: number): boolean {
-    return this.state.exchanges.some(
-      (e) => squareNum >= e.squareRange[0] && squareNum <= e.squareRange[1],
-    );
+    return squareNum <= this.state.spentSquares;
   }
 
   private render(): void {
@@ -86,16 +90,16 @@ export class StarchartWidget extends MarkdownRenderChild {
     el.empty();
 
     const root = el.createDiv({ cls: "household-starchart" });
-    root.createEl("h2", { text: `🎉 ${CHART_TITLE}` });
+    const title = this.state.name ? `${this.state.name}'s Potty Chart` : "Potty Chart";
+    root.createEl("h2", { text: `🎉 ${title}` });
 
     const active = activeSquares(this.state);
-    const tvUsedToday = this.state.exchanges.length * SQUARES_PER_TV;
     const availableTv = Math.floor(active / SQUARES_PER_TV) * SQUARES_PER_TV;
 
     const stats = root.createDiv({ cls: "household-stats" });
-    stats.createDiv({ cls: "household-stat" }).createSpan({ text: `${active}`, cls: "household-stat-value" }).parentElement?.createSpan({ text: "Squares", cls: "household-stat-label" });
-    stats.createDiv({ cls: "household-stat" }).createSpan({ text: `${availableTv} min`, cls: "household-stat-value" }).parentElement?.createSpan({ text: "Available TV", cls: "household-stat-label" });
-    stats.createDiv({ cls: "household-stat" }).createSpan({ text: `${tvUsedToday} min`, cls: "household-stat-value" }).parentElement?.createSpan({ text: "TV Used Today", cls: "household-stat-label" });
+    this.addStat(stats, `${active}`, "Squares");
+    this.addStat(stats, `${availableTv} min`, "Available TV");
+    this.addStat(stats, `${this.state.spentSquares} min`, "TV Used Today");
 
     const grid = root.createDiv({ cls: "household-grid" });
     const numRows = Math.max(1, Math.ceil(this.state.totalSquares / SQUARES_PER_TV));
@@ -139,10 +143,19 @@ export class StarchartWidget extends MarkdownRenderChild {
         style: `width: ${Math.min(100, (this.state.dryCount / DRY_DAYS_PER_REWARD) * 100)}%`,
       },
     });
-    dry.createEl("p", { text: `${this.state.dryCount} / ${DRY_DAYS_PER_REWARD}`, cls: "household-dry-count" });
+    dry.createEl("p", {
+      text: `${this.state.dryCount} / ${DRY_DAYS_PER_REWARD}`,
+      cls: "household-dry-count",
+    });
     const dryButtons = dry.createDiv({ cls: "household-buttons" });
     this.addButton(dryButtons, "All Day Dry!", () => this.mutate((s) => addDryDay(s)));
     this.addButton(dryButtons, "Big Reward", () => this.mutate((s) => claimDryReward(s)));
+  }
+
+  private addStat(parent: HTMLElement, value: string, label: string): void {
+    const stat = parent.createDiv({ cls: "household-stat" });
+    stat.createSpan({ text: value, cls: "household-stat-value" });
+    stat.createSpan({ text: label, cls: "household-stat-label" });
   }
 
   private addButton(parent: HTMLElement, label: string, onClick: () => void): void {
@@ -152,4 +165,25 @@ export class StarchartWidget extends MarkdownRenderChild {
       onClick();
     });
   }
+}
+
+function findOpeningFence(lines: string[], from: number): number | null {
+  for (let i = Math.max(0, from); i < lines.length; i++) {
+    if (/^```starchart\s*$/.test(lines[i].trim())) return i;
+  }
+  return null;
+}
+
+function findFenceRange(
+  lines: string[],
+  hintStart: number | null,
+): { start: number; end: number } | null {
+  const start =
+    (hintStart !== null ? findOpeningFence(lines, hintStart) : null) ??
+    findOpeningFence(lines, 0);
+  if (start === null) return null;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^```+\s*$/.test(lines[i].trim())) return { start, end: i };
+  }
+  return null;
 }

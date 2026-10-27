@@ -32,8 +32,13 @@ versions on each app start (or via "Check for updates" in BRAT settings).
 
   ````markdown
   ```starchart
+  name: Everett
+  totalSquares: 22
+  dryCount: 3
+  spentSquares: 0
+  spentDate: ""
   ```
   ````
 
-  Progress is stored in that note's frontmatter (`totalSquares`, `dryCount`,
-  `exchanges`).
+  All state and config live inside the block. The buttons update the block in
+  place, so edits made here are reflected in the chart (and vice versa).

@@ -10,8 +10,8 @@ installed with BRAT.
   department headings (or flatten back to a plain list). Categories are copied
   verbatim from schiller.town's grocery categorizer.
 - **Star chart** — a `starchart` code block that tracks squares (20 = 20 min of
-  TV) and "All Day Dry" days (20 = a big reward). Progress lives in the note's
-  frontmatter.
+  TV) and "All Day Dry" days (20 = a big reward). State and config live inside
+  the block itself.
 
 See [docs/BRAT.md](docs/BRAT.md) for install and release instructions.
 

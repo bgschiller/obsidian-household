@@ -64,3 +64,16 @@ export function ungroupText(text: string): string {
   }
   return out.join("\n");
 }
+
+const DEPARTMENT_NAMES = new Set(DEPARTMENT_ORDER);
+
+/** True when the text contains any department heading (i.e. it is already grouped). */
+export function isGrouped(text: string): boolean {
+  for (const rawLine of text.split(/\r?\n/)) {
+    const match = /^#{1,6}\s+(.*)$/.exec(rawLine.trim());
+    if (match && DEPARTMENT_NAMES.has(match[1].trim())) {
+      return true;
+    }
+  }
+  return false;
+}

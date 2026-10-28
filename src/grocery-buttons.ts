@@ -1,7 +1,6 @@
 import {
   MarkdownRenderChild,
   MarkdownView,
-  Notice,
   TFile,
   type App,
   type Editor,
@@ -59,11 +58,11 @@ export class GroceryButtonsWidget extends MarkdownRenderChild {
     const editor = this.activeEditor();
     if (!editor) return;
     const selection = editor.getSelection();
-    if (!selection.trim()) {
-      new Notice("Select the grocery items you want to group.");
-      return;
+    if (selection.trim()) {
+      editor.replaceSelection(regroupText(selection));
+    } else {
+      editor.setValue(regroupText(editor.getValue()));
     }
-    editor.replaceSelection(regroupText(selection));
   }
 
   private ungroupSelection(): void {

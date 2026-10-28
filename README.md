@@ -6,9 +6,11 @@ installed with BRAT.
 
 ## Tools
 
-- **Grocery sorting** — select items in `Groceries.md` and group them under
-  department headings (or flatten back to a plain list). Categories are copied
-  verbatim from schiller.town's grocery categorizer.
+- **Grocery sorting** — a `grocery-buttons` code block renders Group/Ungroup
+  buttons that act on the current selection in any note, grouping items under
+  department headings (or flattening back to a plain list). The group/ungroup
+  commands work anywhere too. Categories are copied verbatim from
+  schiller.town's grocery categorizer.
 - **Star chart** — a `starchart` code block that tracks squares (20 = 20 min of
   TV) and "All Day Dry" days (20 = a big reward). State and config live inside
   the block itself.

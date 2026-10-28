@@ -26,8 +26,21 @@ versions on each app start (or via "Check for updates" in BRAT settings).
 
 ## Note files
 
-- **Groceries**: keep a note named `Groceries.md`. Select items and run the
-  "Group selection by department" command (or the shopping-cart ribbon icon).
+- **Groceries**: add a `grocery-buttons` code block to any note (or use the
+  "Group selection by department" / "Ungroup selection" commands anywhere).
+  Select items and click the buttons to group them under department headings
+  or flatten back to a plain list:
+
+  ````markdown
+  ```grocery-buttons
+  DON'T PANIC
+  you can't break this in a way that matters.
+  it's just how I put the buttons in place.
+  ```
+  ````
+
+  The block's body is just a reassuring placeholder (it self-heals if left
+  empty); the buttons act on the text you select elsewhere in the note.
 - **Star chart**: add a `starchart` code block to any note:
 
   ````markdown

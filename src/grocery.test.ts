@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupText, isGrouped, ungroupText } from "./grocery";
+import { groupText, regroupText, ungroupText } from "./grocery";
 
 describe("groupText", () => {
   it("groups flat items under department headings", () => {
@@ -19,16 +19,15 @@ describe("ungroupText", () => {
   });
 });
 
-describe("isGrouped", () => {
-  it("detects department headings", () => {
-    expect(isGrouped("## Produce\n- apples")).toBe(true);
+describe("regroupText", () => {
+  it("groups a flat selection", () => {
+    expect(regroupText("- milk\n- apples")).toBe(
+      "## Produce\n- apples\n\n## Dairy & Eggs\n- milk",
+    );
   });
 
-  it("returns false for a flat list", () => {
-    expect(isGrouped("- apples\n- milk")).toBe(false);
-  });
-
-  it("ignores non-department headings", () => {
-    expect(isGrouped("# Groceries\n- apples")).toBe(false);
+  it("re-groups an already-grouped selection without duplicate headings", () => {
+    const input = "## Produce\n- apples\n\n## Dairy & Eggs\n- milk";
+    expect(regroupText(input)).toBe(input);
   });
 });

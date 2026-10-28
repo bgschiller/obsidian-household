@@ -10,10 +10,12 @@ household-specific — do not add generality for its own sake.
   star chart read/write `.md` notes. Other file types and Obsidian Bases are
   both viable too (Bases is a core plugin, and synch syncs non-markdown files
   fine) — don't reject them out of hand for a future tool. But prefer markdown unless we have a good reason
-- **File-name/block scoping, not configuration.** Grocery commands only act when
-  the active note is named `Groceries.md`. The star chart renders only inside a
-  \`\`\`starchart code block — no filename matching, no settings tab. Behavior is
-  tied to the file/block, which keeps scope tight.
+- **Code-block scoping, not configuration.** The grocery buttons live inside a
+  \`\`\`grocery-buttons code block (an empty block self-heals its body to a
+  "DON'T PANIC" placeholder), and the star chart renders only inside a
+  \`\`\`starchart code block — no filename matching, no settings tab. The
+  grocery group/ungroup commands are global and act on the current selection in
+  any markdown note.
 - **Star-chart state lives inside the code block** (not YAML frontmatter).
   `name` is config; the counters are state. The block is both the durable record
   and the thing the buttons rewrite in place. See the block format below.
@@ -45,16 +47,17 @@ codemirror/lezer packages are `external` in `esbuild.config.mjs`.
 ## Code layout
 
 ```
-src/main.ts            # plugin entry: commands, ribbon icon, code-block processor
-src/categories.ts      # keyword DB (DEPARTMENTS) + categorizeItem()
-src/departments.ts     # DEPARTMENT_ORDER (13 names)
-src/grocery.ts         # groupText / ungroupText / isGrouped (pure, tested)
-src/star-chart.ts      # ChartState + pure reward/aging math (pure, tested)
-src/starchart-block.ts # StarchartWidget (MarkdownRenderChild) + DOM/buttons
+src/main.ts             # plugin entry: commands + code-block processors
+src/categories.ts       # keyword DB (DEPARTMENTS) + categorizeItem()
+src/departments.ts      # DEPARTMENT_ORDER (13 names)
+src/grocery.ts          # groupText / ungroupText / regroupText (pure, tested)
+src/star-chart.ts       # ChartState + pure reward/aging math (pure, tested)
+src/starchart-block.ts  # StarchartWidget (MarkdownRenderChild) + DOM/buttons
+src/grocery-buttons.ts  # GroceryButtonsWidget (MarkdownRenderChild) + DOM/buttons
 ```
 
 Keep pure logic in the `.ts` modules (unit-testable); keep the Obsidian API and
-DOM in `main.ts` and `starchart-block.ts`. `categorizeItem` matches keywords
+DOM in `main.ts`, `starchart-block.ts`, and `grocery-buttons.ts`. `categorizeItem` matches keywords
 with word boundaries and longest-match-wins. The 13 categories, in canonical
 output order: Produce · Meat, Seafood & Deli · Dairy & Eggs · Bakery · Pantry ·
 Stuff · Frozen Foods · Trader Joe's · Costco · New Seasons · Fish Market ·
